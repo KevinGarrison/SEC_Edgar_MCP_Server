@@ -8,7 +8,8 @@ fetch_selected_company_details_and_filing_accessions,
 get_latest_filings_index,
 create_base_df_for_sec_company_data,
 fetch_all_filings,
-preprocess_docs_content
+preprocess_docs_content,
+chunk_docs_content
 )
 
 
@@ -43,7 +44,10 @@ async def company_filings(ctx: Context, company_ticker: str, form:FormType, user
     sec_contex_dict['filing'] = preprocess_docs_content(filing['filing_raw']).document.export_to_markdown()
     count = len(enc.encode(json.dumps(sec_contex_dict)))
     if count > 100000:
-        return {'Message':'Context too large'}    
+        return [
+        {**sec_contex_dict, "filing": chunk}
+        for chunk in chunk_docs_content(sec_contex_dict["filing"])
+    ]
     return sec_contex_dict
 
 

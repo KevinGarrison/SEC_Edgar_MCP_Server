@@ -4,6 +4,7 @@ import pandas as pd
 from typing import Tuple, Union
 from docling.document_converter import DocumentConverter
 from docling.datamodel.base_models import DocumentStream
+from langchain_text_splitters import MarkdownTextSplitter
 from io import BytesIO
 
 async def company_cik_by_ticker(
@@ -214,3 +215,14 @@ def preprocess_docs_content(raw_content:str) -> str:
     result = converter.convert(html_stream)
     
     return result
+
+
+def chunk_docs_content(content:str) -> str:
+    '''
+    This function chunks too large markdown content for proper llm consumption 
+    '''
+    markdown_splitter = MarkdownTextSplitter(chunk_size=2, chunk_overlap=0)
+    chunks = markdown_splitter.split_text(content)
+    
+    return chunks
+

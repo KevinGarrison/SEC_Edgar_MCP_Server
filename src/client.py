@@ -7,7 +7,7 @@ from dotenv import load_dotenv
 load_dotenv()
 
 client = Client("src/server.py")
-ticker = 'AAPL'
+ticker = 'MSFT'
 
 
 async def read_resource():
