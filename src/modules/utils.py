@@ -2,6 +2,9 @@ from fastmcp import Context
 import httpx
 import pandas as pd
 from typing import Tuple, Union
+from docling.document_converter import DocumentConverter
+from docling.datamodel.base_models import DocumentStream
+from io import BytesIO
 
 async def company_cik_by_ticker(
     ctx: Context, company_ticker: str, user_agent: str
@@ -200,3 +203,14 @@ async def fetch_all_filings(ctx:Context, sec__base_df: pd.DataFrame, user_agent:
         ctx.info('Files successfully fetched from SEC.gov')
 
     return pd.Series(all_filings)
+
+
+def preprocess_docs_content(raw_content:str) -> str:
+    '''
+    This function turns the raw html to markdown
+    '''
+    html_stream = DocumentStream(name='sec_file', stream=BytesIO(raw_content))
+    converter = DocumentConverter()
+    result = converter.convert(html_stream)
+    
+    return result

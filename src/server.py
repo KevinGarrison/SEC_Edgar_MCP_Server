@@ -1,11 +1,14 @@
 from fastmcp import FastMCP, Context
 from typing import Literal
+import tiktoken
+import json
 from modules.utils import (
 company_cik_by_ticker,
 fetch_selected_company_details_and_filing_accessions,
 get_latest_filings_index,
 create_base_df_for_sec_company_data,
-fetch_all_filings
+fetch_all_filings,
+preprocess_docs_content
 )
 
 
@@ -15,6 +18,7 @@ FormType = Literal[
     "20-F", "6-K", "4",
     "13D", "13G",
 ]
+enc = tiktoken.encoding_for_model("gpt-4o")
 
 mcp = FastMCP("sec-edgar-mcp-server")
 
@@ -36,9 +40,10 @@ async def company_filings(ctx: Context, company_ticker: str, form:FormType, user
     sec_contex_dict['company_context_1'] = context_1
     sec_contex_dict['company_context_2'] = context_2
     sec_contex_dict['filing_filename'] = filing['docs']
-    sec_contex_dict['filing_raw']= filing['filing_raw']
-    
-
+    sec_contex_dict['filing'] = preprocess_docs_content(filing['filing_raw']).document.export_to_markdown()
+    count = len(enc.encode(json.dumps(sec_contex_dict)))
+    if count > 100000:
+        return {'Message':'Context too large'}    
     return sec_contex_dict
 
 
