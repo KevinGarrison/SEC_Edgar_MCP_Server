@@ -1,0 +1,16 @@
+.git/
+.gitignore
+.vscode/
+.idea/
+__pycache__/
+*.py[cod]
+*.egg-info/
+dist/
+build/
+.pytest_cache/
+htmlcov/
+.env
+.env.*
+*.env
+README.md
+tests/
