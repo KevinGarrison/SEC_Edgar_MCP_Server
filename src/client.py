@@ -12,6 +12,19 @@ ticker = 'MSFT'
 
 
 async def read_resource():
+    """
+    Example client that calls the `edgar-api-latest-filings` tool to fetch
+    an SEC filing in chunks until the full filing is retrieved.
+
+    Workflow:
+        - Starts with cursor = 0.
+        - Calls the MCP tool with the ticker, form type, and cursor.
+        - Prints the first 100 characters of each filing chunk.
+        - Increments the cursor until `max_cursor` is reached.
+
+    This pattern prevents exceeding model token limits by streaming
+    large SEC filings in safe segments.
+    """
     async with client:
         cursor = 0
         while True:    
