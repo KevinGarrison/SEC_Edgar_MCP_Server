@@ -23,7 +23,7 @@ enc = tiktoken.encoding_for_model("gpt-4o")
 mcp = FastMCP("sec-edgar-mcp-server")
 
 @mcp.tool("edgar-api-latest-filings")
-async def company_filings(ctx: Context, company_ticker: str, form:FormType, user_agent: str, cursor:int):
+async def company_filings(ctx: Context, company_ticker: str, form:FormType, cursor:int, user_agent:str='Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'):
     """
     Fetch the latest SEC filing for a given company and form type,
     returning the filing text in token-safe chunks.
@@ -32,7 +32,7 @@ async def company_filings(ctx: Context, company_ticker: str, form:FormType, user
         ctx (Context): The MCP request context (provided by FastMCP).
         company_ticker (str): Public ticker symbol, e.g. "MSFT".
         form (FormType): SEC form type to retrieve (e.g. "10-K", "10-Q").
-        user_agent (str): User agent string for SEC API requests (SEC requires a valid UA).
+        user_agent (str): User agent string for SEC API requests (SEC requires a valid UA provided as default value).
         cursor (int): The index of the chunk to return. 
                       Chunks allow large filings to be retrieved piece by piece.
 

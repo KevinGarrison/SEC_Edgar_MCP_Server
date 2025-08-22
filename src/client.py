@@ -8,7 +8,7 @@ from dotenv import load_dotenv
 load_dotenv()
 
 client = Client("src/server.py")
-ticker = 'MSFT'
+ticker = 'MCD'
 
 
 async def read_resource():
@@ -28,7 +28,7 @@ async def read_resource():
     async with client:
         cursor = 0
         while True:    
-            result = await client.call_tool("edgar-api-latest-filings", {"company_ticker": ticker, "form":"10-K", "user_agent": os.getenv("USER_AGENT_SEC"), "cursor":cursor})
+            result = await client.call_tool("edgar-api-latest-filings", {"company_ticker": ticker, "form":"10-K", "cursor":cursor})
             payload = json.loads(result.content[0].text)
             pprint(payload[f'filing_chunk_{cursor}'][:100])
             cursor+=1
