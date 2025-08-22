@@ -56,7 +56,7 @@ async def company_cik_by_ticker(
             ctx.warning("cik_str not an int; using raw value")
             cik = str(row.get("cik_str"))
 
-        return (cik, row["ticker"], row["title"])
+        return cik
     
     
 async def fetch_selected_company_details_and_filing_accessions(
@@ -221,7 +221,7 @@ def chunk_docs_content(content:str) -> str:
     '''
     This function chunks too large markdown content for proper llm consumption 
     '''
-    markdown_splitter = MarkdownTextSplitter(chunk_size=2, chunk_overlap=0)
+    markdown_splitter = MarkdownTextSplitter(chunk_size=100_000, chunk_overlap=0)
     chunks = markdown_splitter.split_text(content)
     
     return chunks
