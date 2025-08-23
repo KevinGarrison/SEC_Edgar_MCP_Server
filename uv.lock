@@ -2341,12 +2341,15 @@ dependencies = [
     { name = "fastmcp" },
     { name = "ipykernel" },
     { name = "langchain" },
+    { name = "nest-asyncio" },
     { name = "numpy" },
     { name = "openai" },
     { name = "pandas" },
     { name = "pydantic" },
     { name = "ruff" },
+    { name = "starlette" },
     { name = "tiktoken" },
+    { name = "uvicorn" },
 ]
 
 [package.metadata]
@@ -2355,12 +2358,15 @@ requires-dist = [
     { name = "fastmcp", specifier = ">=2.11.3" },
     { name = "ipykernel", specifier = ">=6.30.1" },
     { name = "langchain", specifier = ">=0.3.27" },
+    { name = "nest-asyncio", specifier = ">=1.6.0" },
     { name = "numpy", specifier = ">=2.3.2" },
     { name = "openai", specifier = ">=1.100.2" },
     { name = "pandas", specifier = ">=2.3.1" },
     { name = "pydantic", specifier = ">=2.11.7" },
     { name = "ruff", specifier = ">=0.12.9" },
+    { name = "starlette", specifier = ">=0.47.2" },
     { name = "tiktoken", specifier = ">=0.11.0" },
+    { name = "uvicorn", specifier = ">=0.35.0" },
 ]
 
 [[package]]
