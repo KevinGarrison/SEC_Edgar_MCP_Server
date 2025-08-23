@@ -25,7 +25,7 @@ class MCPOpenAIClient:
     Client for interacting with OpenAI models using MCP tools.
     """
 
-    def __init__(self, model: str = "gpt-4o", protocol: str = "streamable-http"):
+    def __init__(self, model: str = "gpt-5", protocol: str = "streamable-http"):
         """Initialize the OpenAI MCP client.
 
         Args:
@@ -148,7 +148,7 @@ async def main(protocol, openai_model, server_label, server_url):
         for number, tool in enumerate(tools_result):
             logger.info(f"{number}.{tool}")
         answer = await client.process_query(
-        query='Find the latest 10-k filing of Microsoft.',
+        query='Find the latest 10-k filing of Microsoft and summarize it. user agent is kevingarrison90@gmail.com',
         server_label=os.getenv('SERVER_LABEL'),
         server_url=os.getenv('SERVER_URL')
         )
@@ -158,7 +158,7 @@ if __name__ == "__main__":
     asyncio.run(
         main=main(
             protocol='streamable-http',
-            openai_model='gpt-4o',
-            server_label=os.getenv('SERVER_LABEL'),
+            openai_model='gpt-5',
+            server_label='sec_edgar_mcp',
             server_url=os.getenv('SERVER_URL'),
             ))

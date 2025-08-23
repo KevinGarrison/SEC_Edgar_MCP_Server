@@ -3,7 +3,6 @@ from fastmcp import FastMCP, Context
 from modules.utils import Utils
 from dotenv import load_dotenv
 from typing import Literal
-import os
 
 load_dotenv
 
@@ -16,11 +15,10 @@ FormType = Literal[
     "13D", "13G",
 ]
 
-label = os.getenv('SERVER_LABEL')
 instructions = """
 This MCP server provides a search for the latest SEC filings from the EDGAR API.
 """
-mcp = FastMCP(label, instructions=instructions)
+mcp = FastMCP('sec_edgar_mcp', instructions=instructions)
 
 
 @mcp.custom_route("/health", methods=["GET"])
