@@ -132,7 +132,6 @@ async def main(protocol, openai_model, server_label, server_url):
     Workflow:
         - Starts with cursor = 0.
         - Calls the MCP tool with the ticker, form type, and cursor.
-        - Prints the first 100 characters of each filing chunk.
         - Increments the cursor until `max_cursor` is reached.
 
     This pattern prevents exceeding model token limits by streaming
