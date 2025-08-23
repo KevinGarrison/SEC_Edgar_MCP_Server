@@ -1,7 +1,11 @@
 from starlette.responses import JSONResponse
 from fastmcp import FastMCP, Context
-from typing import Literal
 from modules.utils import Utils
+from dotenv import load_dotenv
+from typing import Literal
+import os
+
+load_dotenv
 
 utils = Utils()
 
@@ -12,11 +16,15 @@ FormType = Literal[
     "13D", "13G",
 ]
 
-mcp = FastMCP("sec-edgar-mcp-server",auth=None)
+label = os.getenv('SERVER_LABEL')
+instructions = """
+This MCP server provides a search for the latest SEC filings from the EDGAR API.
+"""
+mcp = FastMCP(label, instructions=instructions)
 
 
 @mcp.custom_route("/health", methods=["GET"])
-async def health_check(request):
+async def health_check():
     return JSONResponse({"status": "healthy", "service": "mcp-server"})
 
 

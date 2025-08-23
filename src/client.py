@@ -1,13 +1,20 @@
 from fastmcp.client.transports import StreamableHttpTransport
-from fastmcp.client.transports import StdioTransport
 from typing import Optional
-from openai import AsyncOpenAI
+from openai import AsyncOpenAI, OpenAI
 from dotenv import load_dotenv
 from fastmcp import Client
-from pprint import pprint
 import nest_asyncio
+import logging
 import asyncio
 import os
+
+logging.basicConfig(
+    level=logging.INFO,                      
+    format="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
+    datefmt="%Y-%m-%d %H:%M:%S",
+)
+
+logger = logging.getLogger(__name__)
 
 load_dotenv()
 
@@ -18,7 +25,7 @@ class MCPOpenAIClient:
     Client for interacting with OpenAI models using MCP tools.
     """
 
-    def __init__(self, model: str = "gpt-4o", protocol: str = "stdio"):
+    def __init__(self, model: str = "gpt-4o", protocol: str = "streamable-http"):
         """Initialize the OpenAI MCP client.
 
         Args:
@@ -26,41 +33,26 @@ class MCPOpenAIClient:
         """
         # Initialize session and client objects
         self.client: Optional[Client] = None
-        self.openai_client = AsyncOpenAI(api_key=os.getenv("OPENAI_API_KEY"))
-        self.model = model
-        self.transport_protocol =  protocol
+        self.openai_client:OpenAI|AsyncOpenAI = AsyncOpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+        self.model:str = model
+        self.transport_protocol:str =  protocol
+        self.server_host:str = None
 
 
     async def connect_to_server(
         self,
-        server_script_path: str = "src/server.py",
-        cmd: str="uv",
-        args: str=["run", "server.py"]
+        url:str=os.getenv('SERVER_URL'),
         ):
         """Client connection to an MCP server.
 
         Args:
             server_script_path: Path to the server script.
         """
-        if self.transport_protocol == 'stdio':
-            transport = StdioTransport(command="uv", args=args)
-            server = 'local'
-        elif self.transport_protocol == 'http':
-            transport = StreamableHttpTransport(url=os.getenv('SERVER_URL'),auth=None)
-            server = os.getenv('SERVER_URL')
 
+        transport = StreamableHttpTransport(url=url,auth=None)
+        self.server_host = url
         self.client = Client(transport=transport)
 
-        # List available tools
-        tools_result = await self.client.list_tools()
-        if server == 'local':
-            print("\nConnected to server on local machine with tools:")
-        else:
-            print(f"\nConnected to server at {server} with tools:")
-        for tool in tools_result.tools:
-            print(f"  - {tool.name}: {tool.description}")
-            
-        
 
     async def process_query(
         self,
@@ -78,7 +70,7 @@ class MCPOpenAIClient:
             The response from OpenAI.
         """
 
-        resp = self.client.responses.create(
+        resp = await self.openai_client.responses.create(
             model="gpt-4o",
             tools=[{
                 "type": "mcp",
@@ -91,8 +83,48 @@ class MCPOpenAIClient:
 
         return resp
 
+    def summarize_response(self, resp):
+        """Extract the most important parts of the OpenAI Response into a dict."""
 
-async def main(protocol, openai_model, server_label, server_url, ):
+        summary = {
+            "id": resp,
+            "model": resp.model,
+            "status": resp.status,
+            "tool_choice": resp.tool_choice,
+            "tools_declared": [t.server_label for t in resp.tools],
+            "tool_calls": [],
+            "assistant_output": [],
+            "errors": []
+        }
+
+        for item in resp.output:
+            if item.type == "mcp_list_tools":
+                summary["tools_declared"] = [tool.name for tool in item.tools]
+
+            elif item.type == "mcp_call":
+                summary["tool_calls"].append({
+                    "name": item.name,
+                    "arguments": item.arguments,
+                    "error": getattr(item, "error", None),
+                    "output": getattr(item, "output", None)
+                })
+                if getattr(item, "error", None):
+                    summary["errors"].append(item.error)
+
+            elif item.type == "message":
+                text = " ".join(
+                    [c.text for c in item.content if getattr(c, "text", None)]
+                )
+                summary["assistant_output"].append({
+                    "role": item.role,
+                    "status": item.status,
+                    "text": text
+                })
+
+        return summary
+    
+
+async def main(protocol, openai_model, server_label, server_url):
     """
     Example client that calls the `edgar-api-latest-filings` tool to fetch
     an SEC filing in chunks until the full filing is retrieved.
@@ -107,18 +139,26 @@ async def main(protocol, openai_model, server_label, server_url, ):
     large SEC filings in safe segments.
     """
     client = MCPOpenAIClient()
-    client.connect_to_server()
-    async with client:
-        answer = client.process_query()
-        print('OpenAI:')
-        print()
-        pprint(answer)
-        
+
+    await client.connect_to_server()
+
+    session = client.client
+    async with session as s:
+        tools_result = await s.list_tools()
+        logger.info(f"\nConnected to server at {client.server_host} with tools:")
+        for number, tool in enumerate(tools_result):
+            logger.info(f"{number}.{tool}")
+        answer = await client.process_query(
+        query='Find the latest 10-k filing of Microsoft.',
+        server_label=os.getenv('SERVER_LABEL'),
+        server_url=os.getenv('SERVER_URL')
+        )
+        logger.info(client.summarize_response(answer))
 
 if __name__ == "__main__":
     asyncio.run(
         main=main(
-            protocol='http',
+            protocol='streamable-http',
             openai_model='gpt-4o',
             server_label=os.getenv('SERVER_LABEL'),
             server_url=os.getenv('SERVER_URL'),
