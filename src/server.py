@@ -1,12 +1,23 @@
+from fastmcp.server.auth.providers.workos import AuthKitProvider
 from starlette.responses import JSONResponse
 from fastmcp import FastMCP, Context
 from modules.utils import Utils
 from dotenv import load_dotenv
 from typing import Literal
+import os
 
 load_dotenv
 
 utils = Utils()
+
+AUTHKIT_DOMAIN = os.getenv("AUTHKIT_DOMAIN", "https://<your-app-name>.authkit.app")
+BASE_URL = os.getenv("SERVER_URL", "http://127.0.0.1:8050/mcp")
+
+auth_provider = AuthKitProvider(
+    authkit_domain=AUTHKIT_DOMAIN,   
+    base_url=BASE_URL,               
+)
+
 
 FormType = Literal[
     "10-K", "10-Q", "8-K",
@@ -18,7 +29,7 @@ FormType = Literal[
 instructions = """
 This MCP server provides a search for the latest SEC filings from the EDGAR API.
 """
-mcp = FastMCP('sec_edgar_mcp', instructions=instructions)
+mcp = FastMCP('sec_edgar_mcp', instructions=instructions, auth=auth_provider)
 
 
 @mcp.custom_route("/health", methods=["GET"])

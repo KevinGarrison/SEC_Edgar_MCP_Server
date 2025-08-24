@@ -1,7 +1,7 @@
 from fastmcp.client.transports import StreamableHttpTransport
-from typing import Optional
 from openai import AsyncOpenAI, OpenAI
 from dotenv import load_dotenv
+from typing import Optional
 from fastmcp import Client
 import nest_asyncio
 import logging
@@ -49,7 +49,7 @@ class MCPOpenAIClient:
             server_script_path: Path to the server script.
         """
 
-        transport = StreamableHttpTransport(url=url,auth=None)
+        transport = StreamableHttpTransport(url=url,auth='oauth')
         self.server_host = url
         self.client = Client(transport=transport)
 
