@@ -11,7 +11,7 @@ load_dotenv()
 utils = Utils()
 
 AUTHKIT_DOMAIN = os.getenv("AUTHKIT_DOMAIN", "https://<your-app-name>.authkit.app")
-BASE_URL = os.getenv("SERVER_URL", "http://127.0.0.1:8050/mcp")
+BASE_URL = os.getenv("BASE_URL", "http://127.0.0.1:8050")
 
 auth_provider = AuthKitProvider(
     authkit_domain=AUTHKIT_DOMAIN,   

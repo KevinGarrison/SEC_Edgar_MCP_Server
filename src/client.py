@@ -158,7 +158,7 @@ if __name__ == "__main__":
     asyncio.run(
         main=main(
             protocol='streamable-http',
-            openai_model='gpt-5',
+            openai_model='gpt-4o',
             server_label='sec_edgar_mcp',
             server_url=os.getenv('SERVER_URL'),
             ))
