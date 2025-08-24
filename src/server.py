@@ -6,7 +6,7 @@ from dotenv import load_dotenv
 from typing import Literal
 import os
 
-load_dotenv
+load_dotenv()
 
 utils = Utils()
 
@@ -15,7 +15,7 @@ BASE_URL = os.getenv("SERVER_URL", "http://127.0.0.1:8050/mcp")
 
 auth_provider = AuthKitProvider(
     authkit_domain=AUTHKIT_DOMAIN,   
-    base_url=BASE_URL,               
+    base_url=BASE_URL               
 )
 
 
