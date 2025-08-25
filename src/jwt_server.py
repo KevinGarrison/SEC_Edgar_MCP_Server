@@ -35,24 +35,21 @@ FormType = Literal[
 instructions = """
 This MCP server provides a search for the latest SEC filings from the EDGAR API.
 """
-mcp = FastMCP('sec-edgar-mcp', instructions=instructions, auth=auth_provider, host='localhost',port=8080)
+mcp = FastMCP('sec-edgar-mcp', instructions=instructions, auth=auth_provider)
 
 ACCESS_TOKEN = key_pair.create_token(        
         scopes=["read", "write"],
     )
 
-if ACCESS_TOKEN:
-    logging.info('[JWT] Token created!')
-    os.environ['ACCESS_TOKEN'] = ACCESS_TOKEN
-    set_key(env_path, "ACCESS_TOKEN", ACCESS_TOKEN)
-
 @mcp.custom_route("/health", methods=["GET"])
 async def health_check():
     return JSONResponse({"status": "healthy", "service": "mcp-server"})
 
+################## Only for dev!!! ###################
 @mcp.custom_route("/get-token", methods=["GET"])
 async def token_request():
     return JSONResponse({"TOKEN": ACCESS_TOKEN})
+##################################################
 
 @mcp.tool("edgar-api-latest-filings")
 async def company_filings(ctx: Context, company_ticker: str, form:FormType, cursor:int, user_agent:str):
