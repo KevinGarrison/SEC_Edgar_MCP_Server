@@ -21,9 +21,7 @@ env_path = find_dotenv()
 key_pair = RSAKeyPair.generate()
 
 auth_provider = JWTVerifier(
-    public_key=inspect.cleandoc(key_pair.public_key),
-    issuer="https://localhost:8080",  
-    audience="sec-edgar-mcp",          
+    public_key=inspect.cleandoc(key_pair.public_key),          
 )
 ##############################################################
 
@@ -39,10 +37,7 @@ This MCP server provides a search for the latest SEC filings from the EDGAR API.
 """
 mcp = FastMCP('sec-edgar-mcp', instructions=instructions, auth=auth_provider, host='localhost',port=8080)
 
-ACCESS_TOKEN = key_pair.create_token(
-        subject="test-client",
-        issuer="https://localhost:8080",  
-        audience="sec-edgar-mcp",         
+ACCESS_TOKEN = key_pair.create_token(        
         scopes=["read", "write"],
     )
 
@@ -55,6 +50,9 @@ if ACCESS_TOKEN:
 async def health_check():
     return JSONResponse({"status": "healthy", "service": "mcp-server"})
 
+@mcp.custom_route("/get-token", methods=["GET"])
+async def token_request():
+    return JSONResponse({"TOKEN": ACCESS_TOKEN})
 
 @mcp.tool("edgar-api-latest-filings")
 async def company_filings(ctx: Context, company_ticker: str, form:FormType, cursor:int, user_agent:str):
