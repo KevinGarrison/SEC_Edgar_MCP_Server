@@ -3,7 +3,7 @@ from fastmcp.server.auth.providers.jwt import RSAKeyPair
 from starlette.responses import JSONResponse
 from fastmcp import FastMCP, Context
 from modules.utils import Utils
-from dotenv import load_dotenv, find_dotenv, set_key
+from dotenv import load_dotenv
 from typing import Literal
 import logging
 import inspect
@@ -14,8 +14,6 @@ load_dotenv()
 logger = logging.getLogger(__name__)
 
 utils = Utils()
-
-env_path = find_dotenv()
 
 ##########################Only for dev#########################
 key_pair = RSAKeyPair.generate()
@@ -35,19 +33,19 @@ FormType = Literal[
 instructions = """
 This MCP server provides a search for the latest SEC filings from the EDGAR API.
 """
-mcp = FastMCP('sec-edgar-mcp', instructions=instructions, auth=auth_provider)
+mcp = FastMCP('sec-edgar-mcp', instructions=instructions, auth=auth_provider, port=8080)
 
 ACCESS_TOKEN = key_pair.create_token(        
         scopes=["read", "write"],
     )
 
 @mcp.custom_route("/health", methods=["GET"])
-async def health_check():
+async def health_check(request):
     return JSONResponse({"status": "healthy", "service": "mcp-server"})
 
 ################## Only for dev!!! ###################
 @mcp.custom_route("/get-token", methods=["GET"])
-async def token_request():
+async def token_request(request):
     return JSONResponse({"TOKEN": ACCESS_TOKEN})
 ##################################################
 
