@@ -1,23 +1,31 @@
-from fastmcp.server.auth.providers.workos import AuthKitProvider
+from fastmcp.server.auth.providers.jwt import JWTVerifier
+from fastmcp.server.auth.providers.jwt import RSAKeyPair
 from starlette.responses import JSONResponse
 from fastmcp import FastMCP, Context
 from modules.utils import Utils
-from dotenv import load_dotenv
+from dotenv import load_dotenv, find_dotenv, set_key
 from typing import Literal
+import logging
+import inspect
 import os
 
 load_dotenv()
 
+logger = logging.getLogger(__name__)
+
 utils = Utils()
 
-AUTHKIT_DOMAIN = os.getenv("AUTHKIT_DOMAIN", "https://<your-app-name>.authkit.app")
-BASE_URL = os.getenv("BASE_URL", "http://127.0.0.1:8050")
+env_path = find_dotenv()
 
-auth_provider = AuthKitProvider(
-    authkit_domain=AUTHKIT_DOMAIN,   
-    base_url=BASE_URL               
+##########################Only for dev#########################
+key_pair = RSAKeyPair.generate()
+
+auth_provider = JWTVerifier(
+    public_key=inspect.cleandoc(key_pair.public_key),
+    issuer="https://localhost:8080",  
+    audience="sec-edgar-mcp",          
 )
-
+##############################################################
 
 FormType = Literal[
     "10-K", "10-Q", "8-K",
@@ -29,8 +37,19 @@ FormType = Literal[
 instructions = """
 This MCP server provides a search for the latest SEC filings from the EDGAR API.
 """
-mcp = FastMCP('sec_edgar_mcp', instructions=instructions, auth=auth_provider)
+mcp = FastMCP('sec-edgar-mcp', instructions=instructions, auth=auth_provider, host='localhost',port=8080)
 
+ACCESS_TOKEN = key_pair.create_token(
+        subject="test-client",
+        issuer="https://localhost:8080",  
+        audience="sec-edgar-mcp",         
+        scopes=["read", "write"],
+    )
+
+if ACCESS_TOKEN:
+    logging.info('[JWT] Token created!')
+    os.environ['ACCESS_TOKEN'] = ACCESS_TOKEN
+    set_key(env_path, "ACCESS_TOKEN", ACCESS_TOKEN)
 
 @mcp.custom_route("/health", methods=["GET"])
 async def health_check():

@@ -1,4 +1,5 @@
 from fastmcp.client.transports import StreamableHttpTransport
+from fastmcp.client.auth.bearer import BearerAuth
 from openai import AsyncOpenAI, OpenAI
 from dotenv import load_dotenv
 from typing import Optional
@@ -17,6 +18,11 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 load_dotenv()
+
+
+############## Only for dev ###########
+TOKEN = os.getenv('ACCESS_TOKEN')
+#######################################
 
 nest_asyncio.apply()
 
@@ -48,8 +54,8 @@ class MCPOpenAIClient:
         Args:
             server_script_path: Path to the server script.
         """
-
-        transport = StreamableHttpTransport(url=url,auth='oauth')
+        
+        transport = StreamableHttpTransport(url=url,auth=BearerAuth(token=TOKEN))
         self.server_host = url
         self.client = Client(transport=transport)
 
@@ -77,6 +83,7 @@ class MCPOpenAIClient:
                 "server_label": server_label,
                 "server_url": server_url,
                 "require_approval": require_approval,
+                "headers":{"Authorization": f"Bearer {TOKEN}"}
             }],
             input=(query)
         )
