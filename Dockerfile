@@ -1,5 +1,4 @@
 FROM python:3.13-slim AS builder
-
 SHELL ["/bin/bash", "-o", "pipefail", "-c"]
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
@@ -12,7 +11,8 @@ RUN curl -LsSf https://astral.sh/uv/install.sh | sh && \
 WORKDIR /app
 COPY pyproject.toml uv.lock* ./
 
-RUN uv sync --frozen --no-dev --system
+RUN uv pip compile pyproject.toml -o /tmp/requirements.txt && \
+    uv pip install --system -r /tmp/requirements.txt
 
 COPY . .
 
