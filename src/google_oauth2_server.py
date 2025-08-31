@@ -405,8 +405,3 @@ async def company_filings(ctx: Context, company_ticker: str, form:FormType, curs
 
     sec_context[f'filing_chunk_{cursor}'] = chunks[cursor]
     return sec_context
-
-
-if __name__ == "__main__":
-    import uvicorn
-    uvicorn.run(app=app)
