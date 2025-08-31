@@ -1,20 +1,22 @@
-FROM python:3.12-slim AS builder
+FROM python:3.13-slim AS builder
+
+SHELL ["/bin/bash", "-o", "pipefail", "-c"]
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
     curl build-essential libsqlite3-dev && \
     rm -rf /var/lib/apt/lists/*
 
-RUN curl -LsSf https://astral.sh/uv/install.sh | sh -s -- --yes && \
+RUN curl -LsSf https://astral.sh/uv/install.sh | sh && \
     ln -s /root/.local/bin/uv /usr/local/bin/uv
 
 WORKDIR /app
 COPY pyproject.toml uv.lock* ./
 
-RUN uv pip install --system --frozen --no-deps -r <(uv pip compile pyproject.toml)
+RUN uv sync --frozen --no-dev --system
 
 COPY . .
 
-FROM python:3.12-slim
+FROM python:3.13-slim
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
     libsqlite3-0 sqlite3 && \
