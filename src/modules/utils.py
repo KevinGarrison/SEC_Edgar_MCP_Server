@@ -9,7 +9,6 @@ import httpx
 
 
 class Utils:
-
     async def company_cik_by_ticker(
         self,
         ctx: Context,
