@@ -22,7 +22,7 @@ templates = Jinja2Templates(directory="src/templates")
 # -----------------------------------------------
 
 API_KEY_PREFIX = "sk_mcp_"
-API_KEY_HASH_SECRET = os.getenv("API_KEY_HASH_SECRET", "dev-api-key-hash-secret")
+API_KEY_HASH_SECRET = os.getenv("API_KEY_HASH_SECRET", default=None)
 DB_PATH = "data/api_keys.db"
 
 
@@ -136,7 +136,6 @@ oauth.register(
     client_kwargs={
         'scope': 'openid email profile',
         'prompt': 'consent select_account',
-        'access_type': 'offline',
     }
 )
 
