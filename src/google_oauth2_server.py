@@ -22,7 +22,7 @@ templates = Jinja2Templates(directory="src/templates")
 # -----------------------------------------------
 
 API_KEY_PREFIX = "sk_mcp_"
-API_KEY_HASH_SECRET = os.getenv("API_KEY_HASH_SECRET", default=None)
+API_KEY_HASH_SECRET = os.getenv("API_KEY_HASH_SECRET")
 DB_PATH = "data/api_keys.db"
 
 
@@ -128,20 +128,90 @@ app.add_middleware(
 oauth = OAuth()
 
 CONF_URL = 'https://accounts.google.com/.well-known/openid-configuration'
-oauth.register(
-    name='google',
-    server_metadata_url=CONF_URL,
-    client_id=os.getenv('GOOGLE_CLIENT_ID', default=None),
-    client_secret=os.getenv('GOOGLE_CLIENT_SECRET', default=None),
-    client_kwargs={
-        'scope': 'openid email profile',
-        'prompt': 'consent select_account',
-    }
-)
+
+# Helpers to register Google OAuth client dynamically (session-provided per user)
+
+def _register_google_oauth(client_id: Optional[str], client_secret: Optional[str]):
+    """(Re)register the Google OAuth client using provided creds."""
+    # Remove any existing client to avoid stale config
+    try:
+        if 'google' in oauth._clients:
+            del oauth._clients['google']
+    except Exception:
+        pass
+
+    oauth.register(
+        name='google',
+        server_metadata_url=CONF_URL,
+        client_id=client_id,
+        client_secret=client_secret,
+        client_kwargs={
+            'scope': 'openid email profile',
+            'prompt': 'consent select_account',
+        }
+    )
+
+
+def _ensure_google_client_from_request(request: Request) -> bool:
+    """Configure the Google OAuth client from *this user's session* only.
+    Returns True if a usable client was registered, False otherwise.
+    """
+    # Require session-scoped creds set via the settings form (per-user isolation)
+    cid = request.session.get('google_client_id')
+    csec = request.session.get('google_client_secret')
+
+    if not cid or not csec:
+        return False
+
+    _register_google_oauth(cid, csec)
+    return True
+
+
+def _clear_ephemeral_google_creds(request: Request):
+    """Remove any session-stored Google creds as soon as they're no longer needed."""
+    request.session.pop('google_client_id', None)
+    request.session.pop('google_client_secret', None)
+
 
 # --------------------------------------------------
 # Public routes for health and the Google login + key mint
 # --------------------------------------------------
+
+@app.route('/oauth/credentials', methods=["GET"])
+async def oauth_credentials_form(request: Request):
+    """Lightweight built-in form in case the base template isn't wired yet."""
+    return HTMLResponse(
+        """
+        <html><body>
+            <h2>Set Google OAuth Credentials (session only)</h2>
+            <form method="POST" action="/oauth/credentials">
+                <label>Client ID<br><input type="text" name="google_client_id" required></label><br><br>
+                <label>Client Secret<br><input type="password" name="google_client_secret" required></label><br><br>
+                <button type="submit">Save & Continue</button>
+            </form>
+            <p><strong>Privacy:</strong> These values are stored in <em>your</em> browser session only (per-user) and are cleared immediately after login completes. They are not saved on the server or shared with other users.</p>
+        </body></html>
+        """,
+        status_code=200,
+        headers={'Cache-Control': 'no-store'}
+    )
+
+
+@app.route('/oauth/credentials', methods=["POST"])
+async def oauth_credentials_save(request: Request):
+    form = await request.form()
+    cid = (form.get('google_client_id') or '').strip()
+    csec = (form.get('google_client_secret') or '').strip()
+    if not cid or not csec:
+        return HTMLResponse("Client ID and Client Secret are required.", status_code=400)
+
+    # Store only in the session so it's ephemeral
+    request.session['google_client_id'] = cid
+    request.session['google_client_secret'] = csec
+
+    # Proceed to login flow
+    return RedirectResponse('/login', status_code=303)
+
 
 @mcp.custom_route("/health", methods=["GET"])
 async def health_check():
@@ -152,12 +222,17 @@ async def health_check():
 async def homepage(request: Request):
     user = request.session.get('user')
     if not user:
-        return templates.TemplateResponse("login.html", {"request": request, "user": None})
+        return templates.TemplateResponse("login.html", {"request": request, "user": None, "oauth_credentials_url": "/oauth/credentials"})
     return RedirectResponse('/keys')
 
 
 @app.route('/login')
 async def login(request):
+    # Make sure the Google client is configured from session only
+    if not _ensure_google_client_from_request(request):
+        # No creds available yet; show the inline form (or your base template can POST to /oauth/credentials)
+        return RedirectResponse('/oauth/credentials', status_code=303)
+
     nonce = secrets.token_urlsafe(16)
     request.session['nonce'] = nonce
     redirect_uri = str(request.url_for('auth'))
@@ -166,17 +241,28 @@ async def login(request):
 
 @app.route('/auth')
 async def auth(request):
+    # Ensure client is configured here as well (covers direct /auth hits)
+    if not _ensure_google_client_from_request(request):
+        return RedirectResponse('/oauth/credentials', status_code=303)
+
     token = await oauth.google.authorize_access_token(request)
     userinfo = token.get('userinfo') or {}
     if not userinfo:
+        # No user info; clear ephemeral creds to be safe and ask user to try again
+        _clear_ephemeral_google_creds(request)
         request.session.clear()
         return HTMLResponse("Login succeeded but no userinfo returned.", status_code=400)
+
     request.session['user'] = {
         "sub": userinfo.get("sub"),
         "email": userinfo.get("email"),
         "name": userinfo.get("name"),
         "picture": userinfo.get("picture"),
     }
+
+    # Clear ephemeral credentials immediately after we don't need them anymore
+    _clear_ephemeral_google_creds(request)
+
     return RedirectResponse('/keys', status_code=303)
 
 
@@ -259,7 +345,7 @@ async def logout(request):
 class APIKeyAuth(BaseHTTPMiddleware):
     async def dispatch(self, request, call_next):
         path = request.url.path
-        if path in {"/health", "/", "/login", "/auth", "/logout", "/api/create-key", "/keys", "/keys/revoke", "/keys/create"}:
+        if path in {"/health", "/", "/login", "/auth", "/logout", "/api/create-key", "/keys", "/keys/revoke", "/keys/create", "/oauth/credentials"}:
             return await call_next(request)
 
         auth = request.headers.get("authorization", "")

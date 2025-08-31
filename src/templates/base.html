@@ -14,6 +14,11 @@
         <a href="/logout" class="ml-4 underline">Logout</a>
       {% else %}
         <a href="/login" class="ml-4 underline">Login</a>
+        <form method="POST" action="/oauth/credentials" class="inline ml-4">
+          <input type="text" name="google_client_id" placeholder="Client ID" required class="px-2 py-1 text-black rounded" />
+          <input type="password" name="google_client_secret" placeholder="Client Secret" required class="px-2 py-1 text-black rounded ml-2" />
+          <button type="submit" class="ml-2 bg-white text-blue-600 px-3 py-1 rounded">Set Credentials</button>
+        </form>
       {% endif %}
     </nav>
     <main class="p-6">
