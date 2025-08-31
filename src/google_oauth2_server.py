@@ -7,7 +7,7 @@ from starlette.requests import Request
 from fastmcp import FastMCP, Context
 from typing import Literal, Optional
 from datetime import datetime
-from modules import utils
+from src.modules import utils
 import sqlite3
 import hashlib
 import secrets
@@ -222,7 +222,7 @@ async def health_check():
 async def homepage(request: Request):
     user = request.session.get('user')
     if not user:
-        return templates.TemplateResponse("login.html", {"request": request, "user": None, "oauth_credentials_url": "/oauth/credentials"})
+        return templates.TemplateResponse("login.html", {"request": request, "user": None, "oauth_credentials_url": "/"})
     return RedirectResponse('/keys')
 
 
@@ -231,7 +231,7 @@ async def login(request):
     # Make sure the Google client is configured from session only
     if not _ensure_google_client_from_request(request):
         # No creds available yet; show the inline form (or your base template can POST to /oauth/credentials)
-        return RedirectResponse('/oauth/credentials', status_code=303)
+        return RedirectResponse('/', status_code=303)
 
     nonce = secrets.token_urlsafe(16)
     request.session['nonce'] = nonce
