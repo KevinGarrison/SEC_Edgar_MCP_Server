@@ -1,32 +1,46 @@
-FROM python:3.13-slim AS builder
-SHELL ["/bin/bash", "-o", "pipefail", "-c"]
+# syntax=docker/dockerfile:1
 
-RUN apt-get update && apt-get install -y --no-install-recommends \
-    curl build-essential libsqlite3-dev && \
+FROM python:3.12-slim AS builder
+WORKDIR /app
+
+RUN apt-get update && apt-get install -y --no-install-recommends curl sqlite3 && \
     rm -rf /var/lib/apt/lists/*
 
+# Install uv
 RUN curl -LsSf https://astral.sh/uv/install.sh | sh && \
     ln -s /root/.local/bin/uv /usr/local/bin/uv
 
-WORKDIR /app
+# Copy just files needed for deps layer
 COPY pyproject.toml uv.lock* ./
 
-RUN uv pip compile pyproject.toml -o /tmp/requirements.txt && \
-    uv pip install --system -r /tmp/requirements.txt
+# 1) Compile requirements (no hashes to keep things simple after we split torch out)
+RUN uv pip compile pyproject.toml -o /tmp/requirements.txt
 
+# 2) Install CPU-only torch/torchvision first (no CUDA)
+RUN uv pip install --system \
+    --index-url https://download.pytorch.org/whl/cpu \
+    --no-deps \
+    torch==2.8.0 torchvision==0.23.0
+
+# 3) Install the rest, excluding torch/torchvision from the compiled file
+RUN grep -vE '^(torch|torchvision)== ' /tmp/requirements.txt > /tmp/req-no-torch.txt && \
+    uv pip install --system -r /tmp/req-no-torch.txt
+
+# Copy app
 COPY . .
 
-FROM python:3.13-slim
+FROM python:3.12-slim
+WORKDIR /app
 
-RUN apt-get update && apt-get install -y --no-install-recommends \
-    libsqlite3-0 sqlite3 && \
+RUN apt-get update && apt-get install -y --no-install-recommends sqlite3 && \
     rm -rf /var/lib/apt/lists/*
 
-WORKDIR /app
+# Bring in deps + app
+COPY --from=builder /usr/local /usr/local
 COPY --from=builder /app /app
 
-USER nobody
+# Ensure imports find your src module
 EXPOSE 8000
 
-ENTRYPOINT ["uvicorn"]
-CMD ["src.google_oauth2_server:app", "--host", "0.0.0.0", "--port", "8000"]
+# Run server
+CMD ["uvicorn","google_oauth2_server:app","--host","0.0.0.0","--port","8000"]
