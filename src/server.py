@@ -1,7 +1,6 @@
 from fastmcp.server.auth.providers.workos import AuthKitProvider
 from starlette.responses import JSONResponse
 from fastmcp import FastMCP, Context
-from starlette.routing import Route
 from modules.utils import Utils
 from typing import Literal
 import os
@@ -36,14 +35,6 @@ mcp = FastMCP("sec_edgar_mcp", instructions=instructions, auth=auth_provider, )
 async def health_check(request):
     return JSONResponse({"status": "healthy", "service": "mcp-server"})
 
-@mcp.custom_route("/.well-known/oauth-protected-resource", methods=["GET"])
-async def resource_metadata(request):
-    return JSONResponse({
-        "resource": BASE_URL,                       
-        "authorization_servers": [AUTHKIT_DOMAIN], 
-        "bearer_methods_supported": ["header"],
-        "scopes_supported": ["openid", "profile", "email", "offline_access"],
-    })
 
 @mcp.tool("edgar-api-latest-filings")
 async def company_filings(ctx: Context, company_ticker: str, form:FormType, cursor:int, user_agent:str):
