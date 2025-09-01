@@ -29,7 +29,7 @@ instructions = """
 This MCP server provides a search for the latest SEC filings from the EDGAR API.
 """
 
-mcp = FastMCP("sec_edgar_mcp", instructions=instructions, auth=auth_provider, )
+mcp = FastMCP("secmcp", instructions=instructions, auth=auth_provider, )
 
 @mcp.custom_route("/health", methods=["GET"])
 async def health_check(request):
