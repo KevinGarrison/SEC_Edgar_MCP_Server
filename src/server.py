@@ -29,14 +29,14 @@ FormType = Literal[
 instructions = """
 This MCP server provides a search for the latest SEC filings from the EDGAR API.
 """
-MCP_PATH = "/mcp"
 
-mcp = FastMCP("sec_edgar_mcp", instructions=instructions, auth=auth_provider)
+mcp = FastMCP("sec_edgar_mcp", instructions=instructions, auth=auth_provider, )
 
-app = mcp.http_app(path=MCP_PATH)
+@mcp.custom_route("/health", methods=["GET"])
+async def health_check(request):
+    return JSONResponse({"status": "healthy", "service": "mcp-server"})
 
-WKP = "/.well-known/oauth-protected-resource"
-
+@mcp.custom_route("/.well-known/oauth-protected-resource", methods=["GET"])
 async def resource_metadata(request):
     return JSONResponse({
         "resource": BASE_URL,                       
@@ -44,17 +44,6 @@ async def resource_metadata(request):
         "bearer_methods_supported": ["header"],
         "scopes_supported": ["openid", "profile", "email", "offline_access"],
     })
-
-app.router.routes = [
-    r for r in app.router.routes
-    if not (hasattr(r, "path") and r.path == WKP)
-]
-app.router.routes.insert(0, Route(WKP, endpoint=resource_metadata, methods=["GET"]))
-
-@mcp.custom_route("/health", methods=["GET"])
-async def health_check(request):
-    return JSONResponse({"status": "healthy", "service": "mcp-server"})
-
 
 @mcp.tool("edgar-api-latest-filings")
 async def company_filings(ctx: Context, company_ticker: str, form:FormType, cursor:int, user_agent:str):

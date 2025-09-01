@@ -8,7 +8,6 @@ from fastmcp import Client
 import nest_asyncio
 import logging
 import asyncio
-import httpx
 import os
 
 logging.basicConfig(
