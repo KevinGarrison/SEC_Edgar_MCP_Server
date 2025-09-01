@@ -36,7 +36,8 @@ async def resource_metadata(request):
     return JSONResponse({
         "resource": BASE_URL,
         "authorization_servers": [AUTHKIT_DOMAIN],  
-        "bearer_methods_supported": ["header"]
+        "bearer_methods_supported": ["header"],
+        "scopes_supported": ["openid", "profile", "email", "offline_access"]
     })
 
 app.add_route("/.well-known/oauth-protected-resource", resource_metadata, methods=["GET"])
