@@ -10,8 +10,8 @@ utils = Utils()
 authkit_domain = os.getenv("AUTHKIT_DOMAIN", None)
 base_url = os.getenv("BASE_URL", None)
 
-AUTHKIT_DOMAIN = authkit_domain
-BASE_URL = base_url
+AUTHKIT_DOMAIN = authkit_domain.rstrip("/")
+BASE_URL = base_url.rstrip("/")
 
 auth_provider = AuthKitProvider(
     authkit_domain=AUTHKIT_DOMAIN,   
