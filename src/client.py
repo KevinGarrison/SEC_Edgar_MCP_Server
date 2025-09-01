@@ -33,7 +33,6 @@ class MCPOpenAIClient:
         Args:
             model: The OpenAI model to use.
         """
-        # Initialize session and client objects
         self.client: Optional[Client] = None
         self.openai_client:OpenAI|AsyncOpenAI = AsyncOpenAI(api_key=os.getenv("OPENAI_API_KEY"))
         self.model:str = model
@@ -75,7 +74,7 @@ class MCPOpenAIClient:
         Returns:
             The response from OpenAI.
         """
-        # Tool call doesn't work with workos authkit !!!
+        # OpenAI Tool call doesn't work with workos authkit !!!
         resp = await self.openai_client.responses.create(
             model="gpt-4o",
             tools=[{
