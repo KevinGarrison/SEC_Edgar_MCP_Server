@@ -12,6 +12,7 @@ dependencies = [
     "httpx>=0.28.1",
     "itsdangerous>=2.2.0",
     "langchain-text-splitters>=0.3.10",
+    "nest-asyncio>=1.6.0",
     "pandas>=2.3.2",
     "starlette>=0.47.3",
     "uvicorn[standard]>=0.35.0",

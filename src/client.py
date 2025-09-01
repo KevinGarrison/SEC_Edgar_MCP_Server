@@ -8,6 +8,7 @@ from fastmcp import Client
 import nest_asyncio
 import logging
 import asyncio
+import httpx
 import os
 
 logging.basicConfig(
@@ -50,12 +51,12 @@ class MCPOpenAIClient:
         Args:
             server_script_path: Path to the server script.
         """
-        storage = FileTokenStorage(server_url="http://localhost:8080")
-        storage.clear()  
-
-        oauth = OAuth(mcp_url="http://localhost:8080")
-
-        transport = StreamableHttpTransport(url=url,auth=oauth)
+        storage = FileTokenStorage(server_url=url)
+        storage.clear() 
+        base_url = os.getenv('BASE_URL') 
+        auth = OAuth(mcp_url=base_url)
+        logger.info(f'[AUTH]: {dir(auth)}')
+        transport = StreamableHttpTransport(url=url, auth=auth)
         self.server_host = url
         self.client = Client(transport=transport)
 
@@ -65,7 +66,6 @@ class MCPOpenAIClient:
         query: str,
         server_label: str,
         server_url: str,
-        oauth_token:str,
         require_approval: str="never"
         ) -> str:
         """Process a query using OpenAI and available MCP tools.
@@ -83,8 +83,7 @@ class MCPOpenAIClient:
                 "type": "mcp",
                 "server_label": server_label,
                 "server_url": server_url,
-                "require_approval": require_approval,
-                "headers":{"Authorization": f"Bearer {oauth_token}"}
+                "require_approval": require_approval
             }],
             input=(query)
         )
@@ -150,26 +149,18 @@ async def main(protocol, openai_model, server_label, server_url):
     await client.connect_to_server()
 
     session = client.client
+
     async with session as s:
-        oauth_token = '...' # Make the request curl -i -X POST \
-        # https://cultured-flower-34-staging.authkit.app/oauth2/token \
-        # -H "Content-Type: application/x-www-form-urlencoded" \
-        # -d "grant_type=client_credentials" \
-        # -d "client_id=xxx" \
-        # -d "client_secret=xxx" \
-        # -d "scope=kevingarrison90@mail.com"
-        
         tools_result = await s.list_tools()
         logger.info(f"\nConnected to server at {client.server_host} with tools:")
         for number, tool in enumerate(tools_result):
             logger.info(f"{number}.{tool}")
-        answer = await client.process_query(
-        query='Find the latest 10-k filing of Microsoft and summarize it. user agent is kevingarrison90@gmail.com',
-        server_label=os.getenv('SERVER_LABEL'),
-        server_url=os.getenv('SERVER_URL'),
-        oauth_token=oauth_token
-        )
-        logger.info(client.summarize_response(answer))
+            answer = await client.process_query(
+            query='Find the latest 10-k filing of Microsoft and summarize it. user agent is kevingarrison90@gmail.com',
+            server_label=os.getenv('SERVER_LABEL'),
+            server_url=os.getenv('SERVER_URL')
+            )
+            logger.info(client.summarize_response(answer))
 
 if __name__ == "__main__":
     asyncio.run(

@@ -2,21 +2,13 @@ from fastmcp.server.auth.providers.workos import AuthKitProvider
 from starlette.responses import JSONResponse
 from fastmcp import FastMCP, Context
 from modules.utils import Utils
-from dotenv import load_dotenv
 from typing import Literal
-import logging
 import os
-
-load_dotenv()
-
-logger = logging.getLogger(__name__)
 
 utils = Utils()
 
-authkit_domain = os.getenv("AUTHKIT_DOMAIN", "https://<your-app-name>.authkit.app")
-base_url = os.getenv("BASE_URL", "http://localhost:8080")
-logger.info(f'[AUTH_SERVER]: {authkit_domain}')
-logger.info(f'[BASE_URL_MCP]: {base_url}')
+authkit_domain = os.getenv("AUTHKIT_DOMAIN", None)
+base_url = os.getenv("BASE_URL", None)
 
 AUTHKIT_DOMAIN = authkit_domain
 BASE_URL = base_url
@@ -36,11 +28,21 @@ FormType = Literal[
 instructions = """
 This MCP server provides a search for the latest SEC filings from the EDGAR API.
 """
-mcp = FastMCP('sec-edgar-mcp', instructions=instructions, auth=auth_provider, host='localhost',port=8080)
+mcp = FastMCP('sec_edgar_mcp', instructions=instructions, auth=auth_provider)
 
+app = mcp.streamable_http_app()
+
+async def resource_metadata(request):
+    return JSONResponse({
+        "resource": BASE_URL,
+        "authorization_servers": [AUTHKIT_DOMAIN],  
+        "bearer_methods_supported": ["header"]
+    })
+
+app.add_route("/.well-known/oauth-protected-resource", resource_metadata, methods=["GET"])
 
 @mcp.custom_route("/health", methods=["GET"])
-async def health_check():
+async def health_check(request):
     return JSONResponse({"status": "healthy", "service": "mcp-server"})
 
 
@@ -92,6 +94,4 @@ async def company_filings(ctx: Context, company_ticker: str, form:FormType, curs
 
     return sec_contex_dict
 
-if __name__ == "__main__":
-    mcp.run(transport='streamable-http')
 
