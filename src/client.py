@@ -53,7 +53,6 @@ class MCPOpenAIClient:
         storage.clear() 
         base_url = os.getenv('BASE_URL') 
         auth = OAuth(mcp_url=base_url)
-        logger.info(f'[AUTH]: {dir(auth)}')
         transport = StreamableHttpTransport(url=url, auth=auth)
         self.server_host = url
         self.client = Client(transport=transport)
@@ -165,7 +164,7 @@ if __name__ == "__main__":
         main=main(
             protocol='streamable-http',
             openai_model='gpt-4o',
-            server_label='sec_edgar_mcp',
+            server_label='secmcp',
             server_url=os.getenv('SERVER_URL'),
             ))
 
